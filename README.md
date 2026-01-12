@@ -21,9 +21,9 @@ An interactive visual art experiment using **Three.js** and **MediaPipe Hands**.
 3. Allow camera access
 4. Use one hand to interact
 
-## 🎥 Demo
+# Evil Eye Interactive 👁️✨
 
-https://github.com/SoumyaSagarNayak/evil-eye-interactive/blob/main/hand-particle-demo.webm
+![Demo](demo.gif)
 
 ## 💡 Idea
 This project explores minimal gesture-based interaction and symbolic visual language.
