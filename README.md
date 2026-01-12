@@ -21,8 +21,5 @@ An interactive visual art experiment using **Three.js** and **MediaPipe Hands**.
 3. Allow camera access
 4. Use one hand to interact
 
-## 📸 Preview
-(Add a screenshot or screen recording here)
-
 ## 💡 Idea
 This project explores minimal gesture-based interaction and symbolic visual language.
