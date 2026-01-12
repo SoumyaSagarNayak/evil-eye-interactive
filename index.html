@@ -26,6 +26,44 @@
 
   <!-- Camera feed -->
   <video id="video" autoplay playsinline></video>
+  <div id="ui" style="
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+  color: white;
+  font-family: Inter, system-ui, sans-serif;
+">
+<h1 style="font-size: 20px; font-weight: 800;">
+    Made By:
+  </h1>
+  <h2 style="font-size: 20px; font-weight: 600; margin-top: 1px;">
+    Soumya Sagar Nayak
+  </h2>
+
+  <p style="font-size: 12px; opacity: 0.7; margin-top: 2px;">
+    Open hand → Expand <br>
+    Close hand → Contract <br>
+    Move hand → Evil eye follows
+  </p>
+
+  <div style="margin-top: 10px; ">
+    <label style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">Particle Color</label><br>
+    <input type="color" id="color-picker" value="#00aaff">
+  </div>
+  <div style="margin-top: 12px;">
+  <p style="font-size: 12px; opacity: 0.8;">Shapes</p>
+  <div style="display: flex; gap: 6px; margin-top: 6px;">
+    <button onclick="changeShape('sphere')">Sphere</button>
+    <button onclick="changeShape('cuboid')">Cuboid</button>
+    <button onclick="changeShape('cylinder')">Cylinder</button>
+    <button onclick="changeShape('cone')">Cone</button>
+  </div>
+</div>
+</div>
+
+
+
 
   <!-- Canvas for hand points + circle -->
   <canvas id="canvas"></canvas>
