@@ -6,7 +6,7 @@ const video = document.getElementById("video");
 let handOpenness = 0;
 let smoothOpenness = 0;
 
-// Hand direction (for evil eye)
+// Evil eye direction
 let handDirX = 0;
 let handDirY = 0;
 
@@ -27,7 +27,7 @@ const hands = new Hands({
 });
 
 hands.setOptions({
-  maxNumHands: 1, // 🔥 single hand only
+  maxNumHands: 1,
   modelComplexity: 0,
   minDetectionConfidence: 0.7,
   minTrackingConfidence: 0.7,
@@ -41,17 +41,16 @@ hands.onResults((res) => {
   const palm = h[0];
   const tips = [4, 8, 12, 16, 20];
 
-  // ---- OPENNESS ----
   let open = 0;
   for (let i of tips) open += distance(palm, h[i]);
   handOpenness = open / tips.length;
 
-  // ---- DIRECTION (mirror fixed) ----
+  // mirror fixed direction
   handDirX = 0.5 - h[9].x;
   handDirY = 0.5 - h[9].y;
 });
 
-// ================= CAMERA =================
+// ================= CAMERA (MEDIAPIPE) =================
 const cameraMP = new Camera(video, {
   onFrame: async () => await hands.send({ image: video }),
 });
@@ -61,6 +60,7 @@ cameraMP.start();
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x050508);
 
+// 🔥 CAMERA (RESPONSIVE)
 const camera3D = new THREE.PerspectiveCamera(
   70,
   window.innerWidth / window.innerHeight,
@@ -69,7 +69,9 @@ const camera3D = new THREE.PerspectiveCamera(
 );
 camera3D.position.z = 6;
 
+// 🔥 RENDERER (RESPONSIVE)
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -114,7 +116,6 @@ const sPos = new Float32Array(sCount * 3);
 for (let i = 0; i < sCount; i++) {
   const t = (i / sCount) * Math.PI * 2;
 
-  // Smooth S curve
   const x = Math.sin(t);
   const y = Math.sin(2 * t) * 0.6;
 
@@ -136,11 +137,26 @@ const sPoints = new THREE.Points(
 );
 sGroup.add(sPoints);
 
+// ================= RESPONSIVE RESIZE HANDLER =================
+// 🔥 THIS IS THE KEY PART
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  camera3D.aspect = w / h;
+  camera3D.updateProjectionMatrix();
+
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+}
+
+window.addEventListener("resize", onResize);
+
 // ================= ANIMATION =================
 function animate() {
   requestAnimationFrame(animate);
 
-  // ---- ULTRA SMOOTH BREATHING ----
+  // ---- SMOOTH BREATHING ----
   smoothOpenness = THREE.MathUtils.lerp(
     smoothOpenness,
     handOpenness,
@@ -153,7 +169,7 @@ function animate() {
     3.0
   );
 
-  // ---- EVIL EYE DIRECTION ----
+  // ---- EVIL EYE LOOK DIRECTION ----
   const dx = THREE.MathUtils.lerp(0, handDirX, 0.18);
   const dy = THREE.MathUtils.lerp(0, handDirY, 0.18);
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
