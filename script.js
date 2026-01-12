@@ -7,6 +7,7 @@ let handOpenness = 0;
 let smoothOpenness = 0;
 let handDirX = 0;
 let handDirY = 0;
+let handDetected = false;
 
 // ================= HELPERS =================
 function distance(a, b) {
@@ -28,8 +29,12 @@ hands.setOptions({
 });
 
 hands.onResults((res) => {
-  if (!res.multiHandLandmarks || res.multiHandLandmarks.length === 0) return;
+  if (!res.multiHandLandmarks || res.multiHandLandmarks.length === 0) {
+    handDetected = false;
+    return;
+  }
 
+  handDetected = true;
   const h = res.multiHandLandmarks[0];
   const palm = h[0];
   const tips = [4, 8, 12, 16, 20];
@@ -38,7 +43,6 @@ hands.onResults((res) => {
   for (let i of tips) open += distance(palm, h[i]);
   handOpenness = open / tips.length;
 
-  // direction for evil eye
   handDirX = 0.5 - h[9].x;
   handDirY = 0.5 - h[9].y;
 });
@@ -80,7 +84,7 @@ for (let i = 0; i < COUNT * 3; i++) {
 geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
 
 const particleMaterial = new THREE.PointsMaterial({
-  color: 0x66ffff,
+  color: localStorage.getItem("color") || "#66ffff",
   size: 0.02,
   transparent: true,
   opacity: 0.85,
@@ -89,12 +93,17 @@ const particleMaterial = new THREE.PointsMaterial({
 const particleSystem = new THREE.Points(geometry, particleMaterial);
 scene.add(particleSystem);
 
-// ================= COLOR PICKER =================
-document.getElementById("color-picker")?.addEventListener("input", (e) => {
-  particleMaterial.color.set(e.target.value);
-});
+// ================= COLOR PICKER (MEMORY) =================
+const colorPicker = document.getElementById("color-picker");
+if (colorPicker) {
+  colorPicker.value = particleMaterial.color.getStyle();
+  colorPicker.addEventListener("input", (e) => {
+    particleMaterial.color.set(e.target.value);
+    localStorage.setItem("color", e.target.value);
+  });
+}
 
-// ================= SHAPE GENERATORS =================
+// ================= SHAPES =================
 function generateSphere() {
   for (let i = 0; i < COUNT; i++) {
     const i3 = i * 3;
@@ -103,8 +112,7 @@ function generateSphere() {
     const theta = 2 * Math.PI * u;
     const phi = Math.acos(2 * v - 1);
     const r = 1.5;
-
-    targetPositions[i3]     = r * Math.sin(phi) * Math.cos(theta);
+    targetPositions[i3] = r * Math.sin(phi) * Math.cos(theta);
     targetPositions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
     targetPositions[i3 + 2] = r * Math.cos(phi);
   }
@@ -113,7 +121,7 @@ function generateSphere() {
 function generateCuboid() {
   for (let i = 0; i < COUNT; i++) {
     const i3 = i * 3;
-    targetPositions[i3]     = (Math.random() - 0.5) * 3;
+    targetPositions[i3] = (Math.random() - 0.5) * 3;
     targetPositions[i3 + 1] = (Math.random() - 0.5) * 3;
     targetPositions[i3 + 2] = (Math.random() - 0.5) * 3;
   }
@@ -122,13 +130,10 @@ function generateCuboid() {
 function generateCylinder() {
   for (let i = 0; i < COUNT; i++) {
     const i3 = i * 3;
-    const angle = Math.random() * Math.PI * 2;
-    const radius = 1.2;
-    const height = (Math.random() - 0.5) * 3;
-
-    targetPositions[i3]     = Math.cos(angle) * radius;
-    targetPositions[i3 + 1] = height;
-    targetPositions[i3 + 2] = Math.sin(angle) * radius;
+    const a = Math.random() * Math.PI * 2;
+    targetPositions[i3] = Math.cos(a) * 1.2;
+    targetPositions[i3 + 1] = (Math.random() - 0.5) * 3;
+    targetPositions[i3 + 2] = Math.sin(a) * 1.2;
   }
 }
 
@@ -136,41 +141,37 @@ function generateCone() {
   for (let i = 0; i < COUNT; i++) {
     const i3 = i * 3;
     const h = Math.random() * 3;
-    const angle = Math.random() * Math.PI * 2;
-    const radius = (3 - h) * 0.5;
-
-    targetPositions[i3]     = Math.cos(angle) * radius;
+    const a = Math.random() * Math.PI * 2;
+    const r = (3 - h) * 0.5;
+    targetPositions[i3] = Math.cos(a) * r;
     targetPositions[i3 + 1] = h - 1.5;
-    targetPositions[i3 + 2] = Math.sin(angle) * radius;
+    targetPositions[i3 + 2] = Math.sin(a) * r;
   }
 }
 
-// 🔥 THIS IS WHAT BUTTONS CALL
 window.changeShape = function (shape) {
+  localStorage.setItem("shape", shape);
   if (shape === "sphere") generateSphere();
   if (shape === "cuboid") generateCuboid();
   if (shape === "cylinder") generateCylinder();
   if (shape === "cone") generateCone();
 };
 
-// default shape
-generateSphere();
+// restore shape
+const savedShape = localStorage.getItem("shape") || "sphere";
+changeShape(savedShape);
 
-// ================= EVIL EYE (S SHAPE) =================
+// ================= EVIL EYE =================
 const sGroup = new THREE.Group();
 particleSystem.add(sGroup);
 
-const sCount = 180;
 const sGeo = new THREE.BufferGeometry();
-const sPos = new Float32Array(sCount * 3);
+const sPos = new Float32Array(180 * 3);
 
-for (let i = 0; i < sCount; i++) {
-  const t = (i / sCount) * Math.PI * 2;
-  const x = Math.sin(t);
-  const y = Math.sin(2 * t) * 0.6;
-
-  sPos[i * 3]     = x * 0.35;
-  sPos[i * 3 + 1] = y * 0.35;
+for (let i = 0; i < 180; i++) {
+  const t = (i / 180) * Math.PI * 2;
+  sPos[i * 3] = Math.sin(t) * 0.35;
+  sPos[i * 3 + 1] = Math.sin(2 * t) * 0.2;
   sPos[i * 3 + 2] = 0;
 }
 
@@ -187,9 +188,60 @@ sGroup.add(
   )
 );
 
+// ================= RECORDING MODE =================
+const recordBtn = document.getElementById("recordBtn");
+let isRecording = false;
+
+if (recordBtn) {
+  recordBtn.onclick = () => {
+    if (isRecording) return; // prevent double click
+
+    isRecording = true;
+
+    // 🔴 UI FEEDBACK
+    recordBtn.innerText = "⏺ Recording...";
+    recordBtn.style.background = "red";
+    recordBtn.style.color = "white";
+
+    const stream = renderer.domElement.captureStream(60);
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "hand-particle-demo.webm";
+      a.click();
+
+      URL.revokeObjectURL(url);
+
+      // 🟢 RESET UI
+      isRecording = false;
+      recordBtn.innerText = "⏺ Record 10s";
+      recordBtn.style.background = "";
+      recordBtn.style.color = "";
+    };
+
+    recorder.start();
+
+    // ⏱ Stop after 10 seconds
+    setTimeout(() => recorder.stop(), 10000);
+  };
+}
+
+
 // ================= ANIMATION =================
 function animate() {
   requestAnimationFrame(animate);
+
+  if (!handDetected) {
+    handOpenness += (0.5 - handOpenness) * 0.02;
+  }
 
   smoothOpenness += (handOpenness - smoothOpenness) * 0.08;
   const scale = THREE.MathUtils.clamp(smoothOpenness * 4, 0.6, 3);
@@ -197,24 +249,21 @@ function animate() {
   const posAttr = geometry.attributes.position;
   for (let i = 0; i < COUNT; i++) {
     const i3 = i * 3;
-    posAttr.array[i3]     += (targetPositions[i3]     * scale - posAttr.array[i3])     * 0.05;
+    posAttr.array[i3] += (targetPositions[i3] * scale - posAttr.array[i3]) * 0.05;
     posAttr.array[i3 + 1] += (targetPositions[i3 + 1] * scale - posAttr.array[i3 + 1]) * 0.05;
     posAttr.array[i3 + 2] += (targetPositions[i3 + 2] * scale - posAttr.array[i3 + 2]) * 0.05;
   }
   posAttr.needsUpdate = true;
 
-  const dx = THREE.MathUtils.lerp(0, handDirX, 0.15);
-const dy = THREE.MathUtils.lerp(0, handDirY, 0.15);
+  const dx = handDirX;
+  const dy = handDirY;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
 
-const len = Math.sqrt(dx * dx + dy * dy) || 1;
-
-// push evil eye to surface of sphere
-sGroup.position.set(
-  (dx / len) * scale,
-  (dy / len) * scale,
-  Math.sqrt(Math.max(scale * scale - dx * dx - dy * dy, 0))
-);
-
+  sGroup.position.set(
+    (dx / len) * scale,
+    (dy / len) * scale,
+    0
+  );
 
   renderer.render(scene, camera3D);
 }
